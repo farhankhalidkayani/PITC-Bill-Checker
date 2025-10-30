@@ -324,23 +324,61 @@ curl "http://localhost:3000/api/check-bill?refNo=06113530462901&company=invalid"
 ### Environment Variables
 
 - `PORT` - Server port (default: 3000)
+- `PROXY_URL` - Pakistan proxy URL to bypass geo-restrictions (optional)
 
-Example:
+**Format:**
 ```bash
-PORT=8080 node server.js
+# Without authentication
+PROXY_URL=http://proxy-host:port
+
+# With authentication
+PROXY_URL=http://username:password@proxy-host:port
 ```
+
+**Example:**
+```bash
+PORT=8080 PROXY_URL=http://pk-proxy.example.com:8080 node server.js
+```
+
+**Finding Pakistan Proxies:**
+
+**Free Options** (not recommended for production):
+- https://free-proxy-list.net/ (filter by Pakistan)
+- https://www.proxy-list.download/HTTPS (filter by Pakistan)
+- https://www.sslproxies.org/ (filter by Pakistan)
+
+**Paid Services** (recommended for production):
+- **Bright Data** - https://brightdata.com/ (has Pakistan IPs)
+- **Oxylabs** - https://oxylabs.io/ (residential proxies)
+- **SmartProxy** - https://smartproxy.com/ (datacenter + residential)
+- **Webshare** - https://www.webshare.io/ (affordable, reliable)
 
 ## Production Deployment
 
 For production use:
 
 1. Set appropriate `PORT` environment variable
-2. Use a process manager (PM2, systemd)
-3. Add rate limiting middleware
-4. Implement caching for frequently requested bills
-5. Add logging with proper log management
-6. Use HTTPS with reverse proxy (nginx, caddy)
-7. Monitor server health and uptime
+2. **Set `PROXY_URL` if deploying outside Pakistan** (required for Vercel, Netlify, etc.)
+3. Use a process manager (PM2, systemd)
+4. Add rate limiting middleware
+5. Implement caching for frequently requested bills
+6. Add logging with proper log management
+7. Use HTTPS with reverse proxy (nginx, caddy)
+8. Monitor server health and uptime
+
+### Deploying to Vercel with Proxy
+
+1. Get a Pakistan proxy (see Environment Variables section)
+2. Add `PROXY_URL` environment variable in Vercel dashboard:
+   - Go to: Settings → Environment Variables
+   - Add: `PROXY_URL` = `http://your-proxy:port`
+3. Redeploy your application
+
+**Example Vercel Environment Variables:**
+```
+PORT=3000
+PROXY_URL=http://pk-proxy.example.com:8080
+```
 
 ### PM2 Example
 
