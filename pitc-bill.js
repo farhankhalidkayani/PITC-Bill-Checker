@@ -1,5 +1,6 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+const { HttpsProxyAgent } = require("https-proxy-agent");
 
 /**
  * Supported electricity companies in Pakistan
@@ -92,16 +93,29 @@ async function getPITCBill(refNo, companyCode) {
     const baseUrl = company.url;
 
     // -------------------------------------------------------------------------
-    // STEP 1: Fetch the page to extract ViewState tokens
-    // ASP.NET WebForms requires these tokens for form submission
+    // Configure proxy if PROXY_URL environment variable is set
+    // This helps bypass geo-restrictions when deploying outside Pakistan
     // -------------------------------------------------------------------------
-    const getResponse = await axios.get(baseUrl, {
+    const proxyUrl = process.env.PROXY_URL;
+    const axiosConfig = {
       timeout: 30000,
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
       },
-    });
+    };
+
+    // Add proxy agent if proxy URL is configured
+    if (proxyUrl) {
+      axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+      axiosConfig.proxy = false; // Disable axios default proxy handling
+    }
+
+    // -------------------------------------------------------------------------
+    // STEP 1: Fetch the page to extract ViewState tokens
+    // ASP.NET WebForms requires these tokens for form submission
+    // -------------------------------------------------------------------------
+    const getResponse = await axios.get(baseUrl, axiosConfig);
 
     // -------------------------------------------------------------------------
     // STEP 2: Parse HTML and extract hidden fields required for form submission
@@ -137,7 +151,7 @@ async function getPITCBill(refNo, companyCode) {
       btnSearch: "Search",
     });
 
-    const postResponse = await axios.post(baseUrl, formData.toString(), {
+    const postConfig = {
       timeout: 30000,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -147,7 +161,15 @@ async function getPITCBill(refNo, companyCode) {
         Cookie: getResponse.headers["set-cookie"]?.join("; ") || "",
       },
       maxRedirects: 5,
-    });
+    };
+
+    // Add proxy agent for POST request too
+    if (proxyUrl) {
+      postConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+      postConfig.proxy = false;
+    }
+
+    const postResponse = await axios.post(baseUrl, formData.toString(), postConfig);
 
     // -------------------------------------------------------------------------
     // STEP 4: Parse the response and check for errors
